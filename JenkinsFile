@@ -1,0 +1,50 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION = 'us-east-1' // Change if needed
+        ECR_REPO = '169634835941.dkr.ecr.us-east-1.amazonaws.com/commonrepo'
+        IMAGE_TAG = 'latest'
+        CLUSTER_NAME = 'terraform-eks'
+        DEPLOYMENT_NAME = 'deployment.yaml'
+        CONTAINER_NAME = 'javawebapp'
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git 'https://github.com/vdy1109/JavaWebApp.git'
+            }
+        }
+
+        // stage('Build with Maven') {
+        //     steps {
+        //         sh 'mvn clean install'
+        //     }
+        // }
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t $ECR_REPO:$IMAGE_TAG .'
+            }
+        }
+
+        stage('Push to ECR') {
+            steps {
+                sh '''
+                    aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPO
+                    docker push $ECR_REPO:$IMAGE_TAG
+                '''
+            }
+        }
+
+        stage('Deploy to EKS') {
+            steps {
+                sh '''
+                    aws eks update-kubeconfig --region $AWS_REGION --name $CLUSTER_NAME
+                    kubectl set image deployment/$DEPLOYMENT_NAME $CONTAINER_NAME=$ECR_REPO:$IMAGE_TAG
+                '''
+            }
+        }
+    }
+}
