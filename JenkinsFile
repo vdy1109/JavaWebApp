@@ -54,6 +54,7 @@ pipeline {
                 sh """
                 
                 kubectl set image deployment/${params.DEPLOYMENT_NAME} ${params.CONTAINER_NAME}=${ECR_URI}:${BUILD_TAG}
+                cat deployment.yaml 
                 kubectl apply -f deployment.yaml
                 """
             }
