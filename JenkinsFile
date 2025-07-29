@@ -1,50 +1,70 @@
+
 pipeline {
     agent any
 
+    parameters {
+        string(name: 'GIT_REPO', defaultValue: 'https://github.com/vdy1109/JavaWebApp.git')
+        string(name: 'BRANCH', defaultValue: 'main')
+        string(name: 'ECR_REPO', defaultValue: 'commonrepo')
+        string(name: 'AWS_REGION', defaultValue: 'us-east-1')
+        string(name: 'DEPLOYMENT_NAME', defaultValue: 'javawebapp')
+        string(name: 'CONTAINER_NAME', defaultValue: 'javawebapp')
+    }
+
     environment {
-        AWS_REGION = 'us-east-1' // Change if needed
-        ECR_REPO = '169634835941.dkr.ecr.us-east-1.amazonaws.com/commonrepo'
-        IMAGE_TAG = 'latest'
-        CLUSTER_NAME = 'terraform-eks'
-        DEPLOYMENT_NAME = 'javawebapp'
-        CONTAINER_NAME = 'javawebapp'
+        BUILD_TAG = "${BUILD_NUMBER}"
+        ECR_URI = "169634835941.dkr.ecr.${params.AWS_REGION}.amazonaws.com/${params.ECR_REPO}"
+        IMAGE_NAME = "${params.ECR_REPO}:${BUILD_TAG}"
     }
 
     stages {
-        stage('Checkout Code') {
+        stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/vdy1109/JavaWebApp.git'
+                git url: "${params.GIT_REPO}", branch: "${params.BRANCH}"
             }
         }
 
-        // stage('Build with Maven') {
-        //     steps {
-        //         sh 'mvn clean install'
-        //     }
-        // }
+        stage('Login to ECR') {
+            steps {
+                sh "aws ecr get-login-password --region ${params.AWS_REGION} | docker login --username AWS --password-stdin ${ECR_URI}"
+            }
+        }
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $ECR_REPO:$IMAGE_TAG .'
+                sh """
+                docker build -t ${params.ECR_REPO}:${BUILD_TAG} .
+                docker tag ${params.ECR_REPO}:${BUILD_TAG} ${ECR_URI}:${BUILD_TAG}
+                docker tag ${params.ECR_REPO}:${BUILD_TAG} ${ECR_URI}:latest
+                """
             }
         }
 
         stage('Push to ECR') {
             steps {
-                sh '''
-                    aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPO
-                    docker push $ECR_REPO:$IMAGE_TAG
-                '''
+                sh """
+                docker push ${ECR_URI}:${BUILD_TAG}
+                docker push ${ECR_URI}:latest
+                """
             }
         }
 
         stage('Deploy to EKS') {
             steps {
-                sh '''
-                    aws eks update-kubeconfig --region $AWS_REGION --name $CLUSTER_NAME
-                    kubectl set image deployment/$DEPLOYMENT_NAME $CONTAINER_NAME=$ECR_REPO:$IMAGE_TAG
-                '''
+                sh """
+                kubectl apply -f deployment.yaml
+                kubectl set image deployment/${params.DEPLOYMENT_NAME} ${params.CONTAINER_NAME}=${ECR_URI}:${BUILD_TAG}
+                """
             }
+        }
+    }
+
+    post {
+        success {
+            echo "Deployment of ${params.ECR_REPO}:${BUILD_TAG} successful!"
+        }
+        failure {
+            echo "Deployment failed!"
         }
     }
 }
