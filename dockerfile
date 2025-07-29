@@ -4,7 +4,7 @@ WORKDIR /build
 
 COPY . .
 
-RUN mvm clean install -DiskipTest
+RUN mvn clean install -DiskipTest
 
 FROM openjdk:17-jdk-slim
 
