@@ -54,7 +54,7 @@ pipeline {
                 sh """
                 
                 
-                kubectl get deplyment
+                kubectl get nodes
                 kubectl apply -f deployment.yaml
                 """
             }
