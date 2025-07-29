@@ -6,7 +6,7 @@ pipeline {
         ECR_REPO = '169634835941.dkr.ecr.us-east-1.amazonaws.com/commonrepo'
         IMAGE_TAG = 'latest'
         CLUSTER_NAME = 'terraform-eks'
-        DEPLOYMENT_NAME = 'deployment.yaml'
+        DEPLOYMENT_NAME = 'javawebapp'
         CONTAINER_NAME = 'javawebapp'
     }
 
