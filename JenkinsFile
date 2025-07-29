@@ -52,8 +52,9 @@ pipeline {
         stage('Deploy to EKS') {
             steps {
                 sh """
-                kubectl apply -f deployment.yaml
+                
                 kubectl set image deployment/${params.DEPLOYMENT_NAME} ${params.CONTAINER_NAME}=${ECR_URI}:${BUILD_TAG}
+                kubectl apply -f deployment.yaml
                 """
             }
         }
