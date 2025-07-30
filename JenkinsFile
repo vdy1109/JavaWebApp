@@ -1,4 +1,3 @@
-
 pipeline {
     agent any
 
@@ -13,8 +12,9 @@ pipeline {
 
     environment {
         BUILD_TAG = "${BUILD_NUMBER}"
-        ECR_URI = "169634835941.dkr.ecr.${params.AWS_REGION}.amazonaws.com/${params.ECR_REPO}"
-        IMAGE_NAME = "${params.ECR_REPO}:${BUILD_TAG}"
+        ECR_URI = "169634835941.dkr.ecr.${params.AWS_REGION}.amazonaws.com"
+        IMAGE_NAME = "${params.DEPLOYMENT_NAME}:${BUILD_TAG}"
+        FULL_IMAGE_URI = "${ECR_URI}/${params.ECR_REPO}/${IMAGE_NAME}"
     }
 
     stages {
@@ -26,16 +26,19 @@ pipeline {
 
         stage('Login to ECR') {
             steps {
-                sh "aws ecr get-login-password --region ${params.AWS_REGION} | docker login --username AWS --password-stdin ${ECR_URI}"
+                sh """
+                aws ecr get-login-password --region ${params.AWS_REGION} | \
+                docker login --username AWS --password-stdin ${ECR_URI}
+                """
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 sh """
-                docker build -t ${params.ECR_REPO}:${BUILD_TAG} .
-                docker tag ${params.ECR_REPO}:${BUILD_TAG} ${ECR_URI}:${BUILD_TAG}
-                docker tag ${params.ECR_REPO}:${BUILD_TAG} ${ECR_URI}:latest
+                docker build -t ${params.DEPLOYMENT_NAME}:${BUILD_TAG} .
+                docker tag ${params.DEPLOYMENT_NAME}:${BUILD_TAG} ${FULL_IMAGE_URI}
+                docker tag ${params.DEPLOYMENT_NAME}:${BUILD_TAG} ${ECR_URI}/${params.ECR_REPO}/${params.DEPLOYMENT_NAME}:latest
                 """
             }
         }
@@ -43,8 +46,8 @@ pipeline {
         stage('Push to ECR') {
             steps {
                 sh """
-                docker push ${ECR_URI}:${BUILD_TAG}
-                docker push ${ECR_URI}:latest
+                docker push ${FULL_IMAGE_URI}
+                docker push ${ECR_URI}/${params.ECR_REPO}/${params.DEPLOYMENT_NAME}:latest
                 """
             }
         }
@@ -52,11 +55,9 @@ pipeline {
         stage('Deploy to EKS') {
             steps {
                 sh """
-                
-                export KUBECONFIG=/var/lib/jenkins/.kube/config
-                nslookup 7D60887335CDAA3014D93B83CE4E0BAE.gr7.us-east-1.eks.amazonaws.com
-                kubectl get nodes
                 kubectl apply -f deployment.yaml
+                kubectl set image deployment/${params.DEPLOYMENT_NAME} ${params.CONTAINER_NAME}=${FULL_IMAGE_URI}
+                kubectl get pods
                 """
             }
         }
@@ -64,7 +65,7 @@ pipeline {
 
     post {
         success {
-            echo "Deployment of ${params.ECR_REPO}:${BUILD_TAG} successful!"
+            echo "Deployment of ${FULL_IMAGE_URI} successful!"
         }
         failure {
             echo "Deployment failed!"
