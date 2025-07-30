@@ -54,7 +54,7 @@ pipeline {
                 sh """
                 
                 export KUBECONFIG=/var/lib/jenkins/.kube/config
-                nslookup https://7D60887335CDAA3014D93B83CE4E0BAE.gr7.us-east-1.eks.amazonaws.com
+                nslookup 7D60887335CDAA3014D93B83CE4E0BAE.gr7.us-east-1.eks.amazonaws.com
                 kubectl get nodes
                 kubectl apply -f deployment.yaml
                 """
