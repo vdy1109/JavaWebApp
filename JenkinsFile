@@ -53,7 +53,7 @@ pipeline {
             steps {
                 sh """
                 
-                
+                cat /etc/resolv.conf
                 kubectl get nodes
                 kubectl apply -f deployment.yaml
                 """
