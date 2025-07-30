@@ -38,7 +38,7 @@ pipeline {
                 sh """
                 docker build -t ${params.DEPLOYMENT_NAME}:${BUILD_TAG} .
                 docker tag ${params.DEPLOYMENT_NAME}:${BUILD_TAG} ${FULL_IMAGE_URI}
-                docker tag ${params.DEPLOYMENT_NAME}:${BUILD_TAG} ${ECR_URI}/${params.ECR_REPO}/${params.DEPLOYMENT_NAME}:latest
+                docker tag ${params.DEPLOYMENT_NAME}:${BUILD_TAG} ${ECR_URI}/${params.ECR_REPO}:latest
                 """
             }
         }
@@ -47,7 +47,7 @@ pipeline {
             steps {
                 sh """
                 docker push ${FULL_IMAGE_URI}
-                docker push ${ECR_URI}/${params.ECR_REPO}/${params.DEPLOYMENT_NAME}:latest
+                docker push ${ECR_URI}/${params.ECR_REPO}:latest
                 """
             }
         }
