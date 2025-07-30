@@ -1,20 +1,22 @@
+
 pipeline {
     agent any
 
     parameters {
         string(name: 'GIT_REPO', defaultValue: 'https://github.com/vdy1109/JavaWebApp.git')
         string(name: 'BRANCH', defaultValue: 'main')
-        string(name: 'ECR_REPO', defaultValue: 'commonrepo')
         string(name: 'AWS_REGION', defaultValue: 'us-east-1')
         string(name: 'DEPLOYMENT_NAME', defaultValue: 'javawebapp')
         string(name: 'CONTAINER_NAME', defaultValue: 'javawebapp')
+        string(name: 'ECR_REPO', defaultValue: 'commonrepo')
     }
 
     environment {
         BUILD_TAG = "${BUILD_NUMBER}"
         ECR_URI = "169634835941.dkr.ecr.${params.AWS_REGION}.amazonaws.com"
-        IMAGE_NAME = "${params.DEPLOYMENT_NAME}:${BUILD_TAG}"
-        FULL_IMAGE_URI = "${ECR_URI}/${params.ECR_REPO}/${IMAGE_NAME}"
+        IMAGE_NAME = "${params.DEPLOYMENT_NAME}"
+        FULL_IMAGE_TAG = "${ECR_URI}/${params.ECR_REPO}/${IMAGE_NAME}:${BUILD_TAG}"
+        LATEST_IMAGE_TAG = "${ECR_URI}/${params.ECR_REPO}/${IMAGE_NAME}:latest"
     }
 
     stages {
@@ -36,9 +38,9 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh """
-                docker build -t ${params.DEPLOYMENT_NAME}:${BUILD_TAG} .
-                docker tag ${params.DEPLOYMENT_NAME}:${BUILD_TAG} ${FULL_IMAGE_URI}
-                docker tag ${params.DEPLOYMENT_NAME}:${BUILD_TAG} ${ECR_URI}/${params.ECR_REPO}:latest
+                docker build -t ${IMAGE_NAME}:${BUILD_TAG} .
+                docker tag ${IMAGE_NAME}:${BUILD_TAG} ${FULL_IMAGE_TAG}
+                docker tag ${IMAGE_NAME}:${BUILD_TAG} ${LATEST_IMAGE_TAG}
                 """
             }
         }
@@ -46,8 +48,8 @@ pipeline {
         stage('Push to ECR') {
             steps {
                 sh """
-                docker push ${FULL_IMAGE_URI}
-                docker push ${ECR_URI}/${params.ECR_REPO}:latest
+                docker push ${FULL_IMAGE_TAG}
+                docker push ${LATEST_IMAGE_TAG}
                 """
             }
         }
@@ -56,8 +58,8 @@ pipeline {
             steps {
                 sh """
                 kubectl apply -f deployment.yaml
-                kubectl set image deployment/${params.DEPLOYMENT_NAME} ${params.CONTAINER_NAME}=${FULL_IMAGE_URI}
-                kubectl get pods
+                kubectl set image deployment/${params.DEPLOYMENT_NAME} ${params.CONTAINER_NAME}=${LATEST_IMAGE_TAG}
+                kubectl rollout status deployment/${params.DEPLOYMENT_NAME}
                 """
             }
         }
@@ -65,7 +67,7 @@ pipeline {
 
     post {
         success {
-            echo "Deployment of ${FULL_IMAGE_URI} successful!"
+            echo "Successfully deployed ${LATEST_IMAGE_TAG} to EKS!"
         }
         failure {
             echo "Deployment failed!"
