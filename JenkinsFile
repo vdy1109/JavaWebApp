@@ -58,6 +58,7 @@ pipeline {
         stage('Deploy to EKS') {
             steps {
                 sh """
+                kubectl config view
                 kubectl apply -f deployment.yaml --validate=false
                 kubectl set image deployment/${params.DEPLOYMENT_NAME} ${params.CONTAINER_NAME}=${FULL_LATEST_TAG}
                 kubectl rollout status deployment/${params.DEPLOYMENT_NAME}
