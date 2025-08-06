@@ -10,5 +10,4 @@ FROM openjdk:17-jdk-slim
 
 COPY --from=builder /build/target/*.jar app.jar
 
-EXPOSE 9000
 ENTRYPOINT [ "java" , "-jar" , "app.jar" ]
