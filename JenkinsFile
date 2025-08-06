@@ -13,7 +13,7 @@ pipeline {
 
     environment {
         BUILD_TAG = "${BUILD_NUMBER}"
-        ECR_URI = "169634835941.dkr.ecr.${params.AWS_REGION}.amazonaws.com"
+        ECR_URI = "223938610757.dkr.ecr.${params.AWS_REGION}.amazonaws.com"
         IMAGE_TAG = "${params.DEPLOYMENT_NAME}-${BUILD_TAG}"
         LATEST_TAG = "${params.DEPLOYMENT_NAME}-latest"
         FULL_IMAGE_TAG = "${ECR_URI}/${params.ECR_REPO}:${IMAGE_TAG}"
