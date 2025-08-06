@@ -22,16 +22,6 @@ pipeline {
 
     stages {
 
-        stage('Configure AWS') {
-            steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-eks-creds']]) {
-                    sh '''
-                        aws sts get-caller-identity
-                        aws eks update-kubeconfig --region us-east-1 --name my-cluster
-                    '''
-                }
-            }
-        }
 
         stage('Checkout') {
             steps {
