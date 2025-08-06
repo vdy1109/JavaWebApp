@@ -10,4 +10,5 @@ FROM openjdk:17-jdk-slim
 
 COPY --from=builder /build/target/*.jar app.jar
 
+
 ENTRYPOINT [ "java" , "-jar" , "app.jar" ]
